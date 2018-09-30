@@ -8,6 +8,7 @@ import android.provider.Telephony;
 import android.util.Log;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -38,7 +39,7 @@ public class OperationManager {
         List<String> bodyList = getSmsBodyByFilter(contentResolver, scheme.getSMSFilter());
         List<Operation> operationList = parseBodyListByScheme(bodyList, scheme);
 
-        //checkLastOperations(operationList);
+        processOperations(operationList);
 
         return operationList;
     }
@@ -140,20 +141,26 @@ public class OperationManager {
         return true;
     }
 
-    private void checkLastOperations(List<Operation> operationList) {
-        int size = operationList.size();
+    private void processOperations(List<Operation> list) {
 
-        Float currentLeft = operationList.get(0).left;
-        Float currentAmount = operationList.get(0).amount;
+        Collections.reverse(list);
 
-        for(int i = 1; i < size; i++) {
-            if(!ok(currentLeft, currentAmount, operationList.get(i).left) ) {
-                Log.e("SMSReader", operationList.get(i).body);
+        ArrayList<Operation> notInfo = new ArrayList<>();
+        for (Operation operation : list) {
+            if(operation.type != OperationType.Info){
+                notInfo.add(operation);
             }
-
-            currentLeft = operationList.get(i).left;
-            currentAmount = operationList.get(i).amount;
         }
+
+        int size = notInfo.size();
+        for (int i = 0; i < size - 1; i++) {
+            Operation cur = notInfo.get(i);
+            Operation next = notInfo.get(i + 1);
+
+            next.setPreviousLeft(cur.getCurrentLeft());
+        }
+
+        Collections.reverse(list);
     }
 
 
